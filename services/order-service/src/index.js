@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -5,6 +6,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const { logger } = require('./utils/logger');
 const { kafkaProducer } = require('./kafka/producer');
 const { redisClient } = require('./redis/client');
+const { connectDB } = require('./database/connection');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +42,10 @@ app.use((err, req, res, next) => {
 // Initialize connections and start server
 async function startServer() {
   try {
+    // Connect to MongoDB
+    await connectDB();
+    logger.info('Connected to MongoDB');
+
     // Connect to Redis
     await redisClient.connect();
     logger.info('Connected to Redis');

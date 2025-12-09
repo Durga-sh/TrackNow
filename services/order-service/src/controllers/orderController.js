@@ -5,9 +5,9 @@ const { logger } = require('../utils/logger');
 class OrderController {
   async createOrder(req, res, next) {
     try {
-      const result = validateOrder(req.body);
-      if (!result.success) {
-        return res.status(400).json({ error: result.error.errors[0].message });
+      const { error } = validateOrder(req.body);
+      if (error) {
+        return res.status(400).json({ error: error.details[0].message });
       }
 
       const order = await orderService.createOrder(req.body);

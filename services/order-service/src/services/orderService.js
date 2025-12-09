@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const { publishOrderCreated } = require('../kafka/producer');
 const { redisClient } = require('../redis/client');
 const { logger } = require('../utils/logger');
+const Order = require('../models/Order');
 
 class OrderService {
   async createOrder(orderData) {
@@ -15,52 +16,89 @@ class OrderService {
       updatedAt: new Date().toISOString()
     };
 
-    // Store in Redis
+    // 1. Save to MongoDB (permanent storage)
+    await Order.create({
+      orderId: order.orderId,
+      customerId: order.customerId,
+      items: order.items,
+      totalAmount: order.totalAmount,
+      status: order.status
+    });
+
+    // 2. Cache in Redis (fast access)
     await this.storeOrder(order);
 
-    // Publish to Kafka
+    // 3. Publish to Kafka (event notification)
     await publishOrderCreated(order);
 
-    logger.info(`Order ${order.orderId} created and event published`);
+    logger.info(`Order ${order.orderId} created in DB and cached in Redis`);
     return order;
   }
 
   async getOrderById(orderId) {
+    // Try Redis first (cache hit)
     const orderKey = `order:${orderId}`;
-    const orderData = await redisClient.get(orderKey);
+    const cachedOrder = await redisClient.get(orderKey);
     
-    if (!orderData) {
+    if (cachedOrder) {
+      logger.info(`Order ${orderId} found in cache`);
+      return JSON.parse(cachedOrder);
+    }
+
+    // Cache miss - load from MongoDB
+    logger.info(`Order ${orderId} not in cache, loading from DB`);
+    const orderDoc = await Order.findOne({ orderId }).lean();
+    
+    if (!orderDoc) {
       return null;
     }
 
-    return JSON.parse(orderData);
+    // Convert MongoDB document to API format
+    const order = {
+      orderId: orderDoc.orderId,
+      customerId: orderDoc.customerId,
+      items: orderDoc.items,
+      totalAmount: orderDoc.totalAmount,
+      status: orderDoc.status,
+      createdAt: orderDoc.createdAt.toISOString(),
+      updatedAt: orderDoc.updatedAt.toISOString()
+    };
+
+    // Repopulate cache
+    await this.storeOrder(order);
+
+    return order;
   }
 
   async getAllOrders(page = 1, limit = 20) {
-    const pattern = 'order:*';
-    const keys = [];
-    
-    // Scan for all order keys
-    for await (const key of redisClient.scanIterator({ MATCH: pattern, COUNT: 100 })) {
-      keys.push(key);
-    }
+    const skip = (page - 1) * limit;
 
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    const paginatedKeys = keys.slice(start, end);
+    // Load from MongoDB with pagination
+    const [orders, total] = await Promise.all([
+      Order.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Order.countDocuments()
+    ]);
 
-    const orders = await Promise.all(
-      paginatedKeys.map(async (key) => {
-        const data = await redisClient.get(key);
-        return data ? JSON.parse(data) : null;
-      })
-    );
+    // Convert to API format
+    const formattedOrders = orders.map(doc => ({
+      orderId: doc.orderId,
+      customerId: doc.customerId,
+      items: doc.items,
+      totalAmount: doc.totalAmount,
+      status: doc.status,
+      createdAt: doc.createdAt.toISOString(),
+      updatedAt: doc.updatedAt.toISOString()
+    }));
 
     return {
-      orders: orders.filter(order => order !== null),
-      total: keys.length,
+      orders: formattedOrders,
+      total,
       page,
-      totalPages: Math.ceil(keys.length / limit)
+      totalPages: Math.ceil(total / limit)
     };
   }
 
@@ -68,7 +106,7 @@ class OrderService {
     const orderKey = `order:${order.orderId}`;
     await redisClient.set(orderKey, JSON.stringify(order));
     
-    // Set expiration (optional - 7 days)
+    // Set expiration (7 days) for cache
     await redisClient.expire(orderKey, 7 * 24 * 60 * 60);
   }
 
