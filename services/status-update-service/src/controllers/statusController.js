@@ -10,7 +10,7 @@ class StatusController {
         return res.status(400).json({ error: error.details[0].message });
       }
 
-      const { orderId } = req.params;
+      const orderId = req.params.id;
       const { status, notes } = req.body;
 
       const updatedOrder = await statusService.updateStatus(orderId, status, notes);
@@ -32,7 +32,7 @@ class StatusController {
 
   async getStatusHistory(req, res, next) {
     try {
-      const { orderId } = req.params;
+      const orderId = req.params.id;
       const history = await statusService.getStatusHistory(orderId);
       
       res.json({

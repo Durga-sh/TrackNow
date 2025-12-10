@@ -96,14 +96,60 @@ class StatusService {
   async processOrderCreatedEvent(order) {
     logger.info(`Processing OrderCreated event for order: ${order.orderId}`);
     
-    // Initialize status history in MongoDB
-    await StatusHistory.create({
-      orderId: order.orderId,
-      fromStatus: null,
-      toStatus: order.status,
-      notes: 'Order created',
-      timestamp: new Date(order.createdAt)
-    });
+    try {
+      // 1. Check if order exists first
+      let orderDoc = await Order.findOne({ orderId: order.orderId });
+      
+      if (!orderDoc) {
+        // Create new order
+        orderDoc = await Order.create({
+          orderId: order.orderId,
+          customerId: order.customerId,
+          items: order.items,
+          totalAmount: order.totalAmount,
+          status: order.status
+        });
+        logger.info(`Order ${order.orderId} created in MongoDB`);
+      } else {
+        logger.info(`Order ${order.orderId} already exists in MongoDB`);
+      }
+      
+      // 2. Cache in Redis
+      const orderData = {
+        orderId: orderDoc.orderId,
+        customerId: orderDoc.customerId,
+        items: orderDoc.items,
+        totalAmount: orderDoc.totalAmount,
+        status: orderDoc.status,
+        createdAt: orderDoc.createdAt.toISOString(),
+        updatedAt: orderDoc.updatedAt.toISOString()
+      };
+      await redisClient.set(`order:${order.orderId}`, JSON.stringify(orderData));
+      await redisClient.expire(`order:${order.orderId}`, 7 * 24 * 60 * 60);
+      
+      // 3. Initialize status history (only if not exists)
+      const historyExists = await StatusHistory.findOne({ 
+        orderId: order.orderId, 
+        toStatus: order.status,
+        fromStatus: null 
+      });
+      
+      if (!historyExists) {
+        await StatusHistory.create({
+          orderId: order.orderId,
+          fromStatus: null,
+          toStatus: order.status,
+          notes: 'Order created',
+          timestamp: new Date()
+        });
+        logger.info(`Status history created for order ${order.orderId}`);
+      }
+      
+      logger.info(`Order ${order.orderId} fully processed`);
+    } catch (error) {
+      logger.error(`Error processing order ${order.orderId}:`, error);
+      // Don't throw - let Kafka consumer continue
+    }
   }
 }
 
