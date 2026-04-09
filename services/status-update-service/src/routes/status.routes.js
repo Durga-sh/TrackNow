@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const statusController = require('../controllers/statusController');
+const statusController = require('../controllers/status.controller');
 
 // Update order status
 router.put('/:id/status', statusController.updateOrderStatus);

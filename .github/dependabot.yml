@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # Maintain dependencies for Order Service
+  - package-ecosystem: "npm"
+    directory: "/services/order-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      
+  # Maintain dependencies for Status Update Service
+  - package-ecosystem: "npm"
+    directory: "/services/status-update-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+
+  # Maintain dependencies for WebSocket Service
+  - package-ecosystem: "npm"
+    directory: "/services/websocket-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+
+  # Maintain dependencies for Frontend Client
+  - package-ecosystem: "npm"
+    directory: "/client"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+
+  # Maintain dependencies for Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"

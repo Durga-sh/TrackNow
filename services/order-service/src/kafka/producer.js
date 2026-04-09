@@ -3,7 +3,7 @@ const { logger } = require('../utils/logger');
 
 const kafka = new Kafka({
   clientId: 'order-service',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
+  brokers: [process.env.KAFKA_BROKER || 'localhost:9093']
 });
 
 const producer = kafka.producer();

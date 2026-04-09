@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const ORDER_SERVICE_URL = import.meta.env?.VITE_ORDER_SERVICE_URL || 'http://localhost:3000';
-const STATUS_SERVICE_URL = import.meta.env?.VITE_STATUS_SERVICE_URL || 'http://localhost:3001';
+const ORDER_SERVICE_URL = process.env.REACT_APP_ORDER_SERVICE_URL || 'http://localhost:3001';
+const STATUS_SERVICE_URL = process.env.REACT_APP_STATUS_SERVICE_URL || 'http://localhost:3002';
 
 const api = axios.create({
   timeout: 10000,

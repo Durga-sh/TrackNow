@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const { logger } = require('../utils/logger');
 
-const MONGO_URI = process.env.MONGO_URI ;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/tracknow';
 
 let isConnected = false;
 

@@ -1,8 +1,10 @@
 const mongoose = require('mongoose');
 const { logger } = require('../utils/logger');
 
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/tracknow';
+
 let isConnected = false;
-const MONGO_URI = process.env.MONGO_URI;
+
 const connectDB = async () => {
   if (isConnected) {
     logger.info('Using existing MongoDB connection');

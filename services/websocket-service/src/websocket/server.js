@@ -11,11 +11,11 @@ function initWebSocketServer(server) {
 
   wss.on('connection', async (ws, req) => {
     const pathname = url.parse(req.url).pathname;
-    let orderId = pathname.split('/').pop();
-    
-    // If no orderId, use 'broadcast' to receive all events
-    if (!orderId || orderId === '') {
-      orderId = 'broadcast';
+    const orderId = pathname.split('/').pop();
+
+    if (!orderId) {
+      ws.close(1008, 'Order ID required');
+      return;
     }
 
     logger.info(`Client connected for order: ${orderId}`);
@@ -34,28 +34,9 @@ function initWebSocketServer(server) {
           type: 'INITIAL_STATE',
           data: JSON.parse(orderData)
         }));
-        logger.info(`Sent initial state for order: ${orderId}`);
-      } else {
-        logger.warn(`No cached data found for order: ${orderId}`);
-        // Send acknowledgment even if no data found
-        ws.send(JSON.stringify({
-          type: 'CONNECTED',
-          message: `Connected to order ${orderId}`,
-          orderId: orderId
-        }));
       }
     } catch (error) {
       logger.error('Error fetching initial state:', error);
-      // Don't close connection, just log the error
-      try {
-        ws.send(JSON.stringify({
-          type: 'ERROR',
-          message: 'Failed to fetch initial state',
-          orderId: orderId
-        }));
-      } catch (sendError) {
-        logger.error('Error sending error message:', sendError);
-      }
     }
 
     // Handle client messages
