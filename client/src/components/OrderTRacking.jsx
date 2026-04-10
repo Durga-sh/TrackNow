@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { orderAPI, statusAPI } from '../services/api';
-import websocketService from '../services/websocket';
-import './OrderTracking.css';
+import websocketService from '../services/webSocket';
+
 
 function OrderTracking() {
   const { orderId } = useParams();

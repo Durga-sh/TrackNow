@@ -1,4 +1,4 @@
-const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8080';
+const WS_URL = import.meta.env?.VITE_WS_URL || 'ws://localhost:8080';
 
 class WebSocketService {
   constructor() {
@@ -7,14 +7,34 @@ class WebSocketService {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 3000;
     this.listeners = new Map();
+    this.shouldReconnect = true;
+    this.isConnecting = false;
   }
 
   connect(orderId) {
+    if (this.isConnecting) {
+      console.log('Connection already in progress...');
+      return Promise.resolve();
+    }
+
+    this.isConnecting = true;
+    this.shouldReconnect = true;
+
     return new Promise((resolve, reject) => {
       try {
-        this.ws = new WebSocket(`${WS_URL}/orders/${orderId}`);
+        this.ws = new WebSocket(`${WS_URL}/${orderId}`);
+
+        const connectionTimeout = setTimeout(() => {
+          if (this.ws && this.ws.readyState !== WebSocket.OPEN) {
+            console.log('Connection timeout, retrying...');
+            this.ws.close();
+            reject(new Error('Connection timeout'));
+          }
+        }, 5000);
 
         this.ws.onopen = () => {
+          clearTimeout(connectionTimeout);
+          this.isConnecting = false;
           console.log('WebSocket connected for order:', orderId);
           this.reconnectAttempts = 0;
           resolve();
@@ -29,16 +49,27 @@ class WebSocketService {
           }
         };
 
-        this.ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          reject(error);
+        this.ws.onerror = () => {
+          clearTimeout(connectionTimeout);
+          this.isConnecting = false;
+          // Only log error if connection is not already open
+          if (this.ws && this.ws.readyState !== WebSocket.OPEN) {
+            console.warn('WebSocket connection error (will retry)');
+          }
         };
 
-        this.ws.onclose = () => {
-          console.log('WebSocket disconnected');
-          this.handleReconnect(orderId);
+        this.ws.onclose = (event) => {
+          clearTimeout(connectionTimeout);
+          this.isConnecting = false;
+          console.log('WebSocket disconnected', event.code, event.reason);
+          
+          // Only reconnect if it wasn't a clean close and we should reconnect
+          if (this.shouldReconnect && event.code !== 1000) {
+            this.handleReconnect(orderId);
+          }
         };
       } catch (error) {
+        this.isConnecting = false;
         reject(error);
       }
     });
@@ -85,11 +116,13 @@ class WebSocketService {
   }
 
   disconnect() {
+    this.shouldReconnect = false;
     if (this.ws) {
-      this.ws.close();
+      this.ws.close(1000, 'Client disconnecting');
       this.ws = null;
     }
     this.listeners.clear();
+    this.reconnectAttempts = 0;
   }
 }
 

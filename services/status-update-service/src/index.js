@@ -1,9 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const statusRoutes = require('./routes/status.routes');
+const statusRoutes = require('./routes/statusRoutes');
 const { logger } = require('./utils/logger');
-const { startConsumer } = require('./kafka/consumer');
 const { kafkaProducer } = require('./kafka/producer');
 const { redisClient } = require('./redis/client');
 const { connectDB } = require('./database/connection');
@@ -50,13 +50,9 @@ async function startServer() {
     await redisClient.connect();
     logger.info('Connected to Redis');
 
-    // Connect Kafka Producer
+    // Connect Kafka Producer (only for publishing status change events)
     await kafkaProducer.connect();
     logger.info('Kafka Producer Connected');
-
-    // Start Kafka Consumer
-    await startConsumer();
-    logger.info('Kafka Consumer Started');
 
     app.listen(PORT, () => {
       logger.info(`Status Update Service running on port ${PORT}`);

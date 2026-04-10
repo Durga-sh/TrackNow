@@ -1,52 +1,16 @@
-# TrackNow Frontend
+# React + Vite
 
-React-based frontend for real-time order tracking with WebSocket integration.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Features
-- Create new orders
-- View all orders
-- Real-time order tracking
-- Live status updates via WebSockets
-- Responsive design
+Currently, two official plugins are available:
 
-## Tech Stack
-- React 18
-- React Router for navigation
-- Axios for API calls
-- WebSocket for real-time updates
-- CSS3 for styling
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Environment Variables
+## React Compiler
 
-Create a `.env` file:
-```
-REACT_APP_ORDER_SERVICE_URL=http://localhost:3001
-REACT_APP_STATUS_SERVICE_URL=http://localhost:3002
-REACT_APP_WS_URL=ws://localhost:8080
-```
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Development
+## Expanding the ESLint configuration
 
-```bash
-npm install
-npm start
-```
-
-Open http://localhost:3000
-
-## Build for Production
-
-```bash
-npm run build
-```
-
-## Components
-
-- **CreateOrder**: Form to create new orders
-- **OrderList**: Display all orders
-- **OrderTracking**: Real-time order tracking with WebSocket
-
-## Services
-
-- **api.js**: REST API integration
-- **websocket.js**: WebSocket client service
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

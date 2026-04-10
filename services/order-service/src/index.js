@@ -1,7 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const orderRoutes = require('./routes/order.routes');
+const orderRoutes = require('./routes/orderRoutes');
 const { logger } = require('./utils/logger');
 const { kafkaProducer } = require('./kafka/producer');
 const { redisClient } = require('./redis/client');

@@ -4,7 +4,7 @@ const { broadcastToOrder } = require('../websocket/server');
 
 const kafka = new Kafka({
   clientId: 'websocket-service',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9093']
+  brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
 });
 
 const consumer = kafka.consumer({ groupId: 'websocket-group' });

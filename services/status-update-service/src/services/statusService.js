@@ -2,7 +2,7 @@ const { publishStatusChanged } = require('../kafka/producer');
 const { redisClient } = require('../redis/client');
 const { logger } = require('../utils/logger');
 const Order = require('../models/Order');
-const StatusHistory = require('../models/StatusHistory');
+const StatusHistory = require('../models/statusHistroy');
 
 const ORDER_STATUSES = {
   CREATED: 'CREATED',
@@ -90,19 +90,6 @@ class StatusService {
       toStatus: statusChange.to,
       notes: statusChange.notes,
       timestamp: new Date(statusChange.timestamp)
-    });
-  }
-
-  async processOrderCreatedEvent(order) {
-    logger.info(`Processing OrderCreated event for order: ${order.orderId}`);
-    
-    // Initialize status history in MongoDB
-    await StatusHistory.create({
-      orderId: order.orderId,
-      fromStatus: null,
-      toStatus: order.status,
-      notes: 'Order created',
-      timestamp: new Date(order.createdAt)
     });
   }
 }

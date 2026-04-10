@@ -1,5 +1,5 @@
-const orderService = require('../services/order.service');
-const { validateOrder } = require('../validators/order.validator');
+const orderService = require('../services/orderService');
+const { validateOrder } = require('../validators/ordervalidator');
 const { logger } = require('../utils/logger');
 
 class OrderController {
