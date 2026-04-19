@@ -9,6 +9,7 @@ class OrderService {
     const order = {
       orderId: uuidv4(),
       customerId: orderData.customerId,
+      customerEmail: orderData.customerEmail,
       items: orderData.items,
       totalAmount: this.calculateTotal(orderData.items),
       status: 'CREATED',
@@ -20,6 +21,7 @@ class OrderService {
     await Order.create({
       orderId: order.orderId,
       customerId: order.customerId,
+      customerEmail: order.customerEmail,
       items: order.items,
       totalAmount: order.totalAmount,
       status: order.status
@@ -57,6 +59,7 @@ class OrderService {
     const order = {
       orderId: orderDoc.orderId,
       customerId: orderDoc.customerId,
+      customerEmail: orderDoc.customerEmail,
       items: orderDoc.items,
       totalAmount: orderDoc.totalAmount,
       status: orderDoc.status,
@@ -87,6 +90,7 @@ class OrderService {
     const formattedOrders = orders.map(doc => ({
       orderId: doc.orderId,
       customerId: doc.customerId,
+      customerEmail: doc.customerEmail,
       items: doc.items,
       totalAmount: doc.totalAmount,
       status: doc.status,

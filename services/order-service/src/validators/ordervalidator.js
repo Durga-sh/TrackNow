@@ -2,6 +2,7 @@ const { z } = require('zod');
 
 const orderSchema = z.object({
   customerId: z.string(),
+  customerEmail: z.string().email(),
   items: z.array(
     z.object({
       productId: z.string(),

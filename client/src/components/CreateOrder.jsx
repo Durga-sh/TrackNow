@@ -8,6 +8,7 @@ function CreateOrder({ showNotification }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     customerId: '',
+    customerEmail: '',
     items: [{ productId: '', name: '', quantity: 1, price: 0 }]
   });
 
@@ -60,6 +61,17 @@ function CreateOrder({ showNotification }) {
               onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
               required
               placeholder="customer-123"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Customer Email</label>
+            <input
+              type="email"
+              value={formData.customerEmail}
+              onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+              required
+              placeholder="customer@example.com"
             />
           </div>
 
