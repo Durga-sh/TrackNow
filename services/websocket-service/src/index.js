@@ -2,7 +2,7 @@ const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const { initWebSocketServer } = require('./websocket/server');
-const { startConsumer } = require('./kafka/consumer');
+const { startConsumer, stopConsumer } = require('./kafka/consumer');
 const { redisClient } = require('./redis/client');
 const { logger } = require('./utils/logger');
 
@@ -35,9 +35,9 @@ async function startServer() {
     await redisClient.connect();
     logger.info('Connected to Redis');
 
-    // Start Kafka Consumer
+    // Start Kafka Consumer (with retry + DLQ)
     await startConsumer(wss);
-    logger.info('Kafka Consumer Started');
+    logger.info('Kafka Consumer Started with retry + DLQ support');
 
     server.listen(PORT, () => {
       logger.info(`WebSocket Service running on port ${PORT}`);
@@ -52,6 +52,7 @@ async function startServer() {
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, closing gracefully');
   wss.close();
+  await stopConsumer();
   await redisClient.quit();
   server.close();
   process.exit(0);

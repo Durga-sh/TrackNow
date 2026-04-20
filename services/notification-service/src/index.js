@@ -4,7 +4,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const { logger } = require('./utils/logger');
 const { connectDB } = require('./database/connection');
-const { startConsumer, kafkaConsumer } = require('./kafka/consumer');
+const { startConsumer, stopConsumer } = require('./kafka/consumer');
 const { initTransporter } = require('./channels/emailChannel');
 const config = require('./config');
 
@@ -80,9 +80,9 @@ async function startServer() {
     await initTransporter();
     logger.info('Email transporter ready');
 
-    // Start Kafka Consumer
+    // Start Kafka Consumer (with retry + DLQ)
     await startConsumer();
-    logger.info('Kafka Consumer Started');
+    logger.info('Kafka Consumer Started with retry + DLQ support');
 
     app.listen(PORT, () => {
       logger.info(`Notification Service running on port ${PORT}`);
@@ -96,7 +96,7 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, closing gracefully');
-  await kafkaConsumer.disconnect();
+  await stopConsumer();
   process.exit(0);
 });
 

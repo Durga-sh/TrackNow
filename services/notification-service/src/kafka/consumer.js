@@ -2,6 +2,7 @@ const { Kafka } = require('kafkajs');
 const { logger } = require('../utils/logger');
 const config = require('../config');
 const notificationService = require('../services/notificationService');
+const { withRetry, initDLQProducer, disconnectDLQProducer } = require('./retryHandler');
 
 const kafka = new Kafka({
   clientId: config.kafka.clientId,
@@ -16,10 +17,31 @@ const TOPICS = {
   STATUS_CHANGED: 'order.status.changed'
 };
 
+/**
+ * Core message processing logic — separated so it can be wrapped with retry.
+ */
+async function processMessage({ topic, partition, message }) {
+  const event = JSON.parse(message.value.toString());
+
+  const correlationId = message.headers?.correlationId
+    ? message.headers.correlationId.toString()
+    : 'unknown';
+
+  logger.info(`Received event from ${topic}`, {
+    orderId: event.orderId,
+    partition,
+    correlationId
+  });
+
+  await notificationService.handleEvent(topic, event);
+}
+
 async function startConsumer() {
+  // Initialize DLQ producer for publishing failed messages
+  await initDLQProducer(config.kafka.broker);
+
   await consumer.connect();
 
-  // Subscribe to relevant topics
   await consumer.subscribe({
     topics: [
       TOPICS.ORDER_CREATED,
@@ -28,42 +50,28 @@ async function startConsumer() {
     fromBeginning: false
   });
 
-  await consumer.run({
-    eachMessage: async ({ topic, partition, message }) => {
-      try {
-        const event = JSON.parse(message.value.toString());
-
-        // Extract correlation ID from Kafka headers if present
-        const correlationId = message.headers?.correlationId
-          ? message.headers.correlationId.toString()
-          : 'unknown';
-
-        logger.info(`Received event from ${topic}`, {
-          orderId: event.orderId,
-          partition,
-          correlationId
-        });
-
-        // Route event to notification service
-        await notificationService.handleEvent(topic, event);
-
-      } catch (error) {
-        logger.error('Error processing message in notification consumer:', {
-          topic,
-          partition,
-          offset: message.offset,
-          error: error.message,
-          stack: error.stack
-        });
-      }
-    }
+  // Wrap handler with retry (3 retries, exponential backoff: 1s → 2s → 4s)
+  const retryingHandler = withRetry(processMessage, {
+    maxRetries: 3,
+    baseDelayMs: 1000
   });
 
-  logger.info('Notification Kafka consumer is running');
+  await consumer.run({
+    eachMessage: retryingHandler
+  });
+
+  logger.info('Notification Kafka consumer is running with retry + DLQ support');
+}
+
+async function stopConsumer() {
+  await consumer.disconnect();
+  await disconnectDLQProducer();
+  logger.info('Kafka consumer and DLQ producer disconnected');
 }
 
 module.exports = {
   kafkaConsumer: consumer,
   startConsumer,
+  stopConsumer,
   TOPICS
 };
