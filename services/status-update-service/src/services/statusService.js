@@ -57,6 +57,7 @@ class StatusService {
     await publishStatusChanged({
       orderId,
       customerEmail: orderDoc.customerEmail,
+      customerPhone: orderDoc.customerPhone || '',
       previousStatus,
       currentStatus: newStatus,
       notes,

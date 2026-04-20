@@ -1,7 +1,9 @@
 const { logger } = require('../utils/logger');
 const { sendEmail } = require('../channels/emailChannel');
+const { sendSMS } = require('../channels/smsChannel');
 const { orderCreatedTemplate } = require('../templates/orderCreated');
 const { statusChangedTemplate } = require('../templates/statusChanged');
+const { orderCreatedSMS, statusChangedSMS } = require('../templates/smsTemplates');
 const NotificationLog = require('../models/NotificationLog');
 
 const TOPICS = {
@@ -31,81 +33,131 @@ class NotificationService {
   }
 
   /**
-   * Handle order.created event — send confirmation email.
+   * Handle order.created event — send email + SMS confirmation.
    */
   async onOrderCreated(order) {
-    const template = orderCreatedTemplate(order);
-
-    // Use the customer's actual email from the order
+    // --- Email Notification ---
+    const emailTemplate = orderCreatedTemplate(order);
     const recipientEmail = order.customerEmail;
 
-    const result = await sendEmail({
+    const emailResult = await sendEmail({
       to: recipientEmail,
-      subject: template.subject,
-      html: template.html
+      subject: emailTemplate.subject,
+      html: emailTemplate.html
     });
 
-    // Persist notification log
     await NotificationLog.create({
       orderId: order.orderId,
       customerId: order.customerId,
       channel: 'email',
       type: 'ORDER_CREATED',
       recipient: recipientEmail,
-      subject: template.subject,
-      status: result.success ? 'sent' : 'failed',
-      messageId: result.messageId,
-      previewUrl: result.previewUrl,
-      error: result.error || null,
+      subject: emailTemplate.subject,
+      status: emailResult.success ? 'sent' : 'failed',
+      messageId: emailResult.messageId,
+      previewUrl: emailResult.previewUrl,
+      error: emailResult.error || null,
       metadata: { totalAmount: order.totalAmount, itemCount: (order.items || []).length }
     });
 
-    logger.info(`Order created notification processed`, {
+    logger.info(`Order created email notification processed`, {
       orderId: order.orderId,
       channel: 'email',
-      status: result.success ? 'sent' : 'failed',
-      previewUrl: result.previewUrl
+      status: emailResult.success ? 'sent' : 'failed'
     });
+
+    // --- SMS Notification (only if phone number provided) ---
+    if (order.customerPhone) {
+      const smsTemplate = orderCreatedSMS(order);
+
+      const smsResult = await sendSMS({
+        to: order.customerPhone,
+        message: smsTemplate.message
+      });
+
+      await NotificationLog.create({
+        orderId: order.orderId,
+        customerId: order.customerId,
+        channel: 'sms',
+        type: 'ORDER_CREATED',
+        recipient: order.customerPhone,
+        subject: 'Order Confirmation SMS',
+        status: smsResult.success ? 'sent' : 'failed',
+        messageId: smsResult.messageId,
+        error: smsResult.error || null,
+        metadata: { totalAmount: order.totalAmount }
+      });
+
+      logger.info(`Order created SMS notification processed`, {
+        orderId: order.orderId,
+        channel: 'sms',
+        status: smsResult.success ? 'sent' : 'failed'
+      });
+    }
   }
 
   /**
-   * Handle order.status.changed event — send status update email.
+   * Handle order.status.changed event — send email + SMS status update.
    */
   async onStatusChanged(event) {
-    const template = statusChangedTemplate(event);
-
-    // Use the customer's actual email (look up from order if not in event)
+    // --- Email Notification ---
+    const emailTemplate = statusChangedTemplate(event);
     const recipientEmail = event.customerEmail || `customer-${event.orderId.substring(0, 8)}@tracknow.app`;
 
-    const result = await sendEmail({
+    const emailResult = await sendEmail({
       to: recipientEmail,
-      subject: template.subject,
-      html: template.html
+      subject: emailTemplate.subject,
+      html: emailTemplate.html
     });
 
-    // Persist notification log
     await NotificationLog.create({
       orderId: event.orderId,
       customerId: event.customerId || 'unknown',
       channel: 'email',
       type: 'STATUS_CHANGED',
       recipient: recipientEmail,
-      subject: template.subject,
-      status: result.success ? 'sent' : 'failed',
-      messageId: result.messageId,
-      previewUrl: result.previewUrl,
-      error: result.error || null,
+      subject: emailTemplate.subject,
+      status: emailResult.success ? 'sent' : 'failed',
+      messageId: emailResult.messageId,
+      previewUrl: emailResult.previewUrl,
+      error: emailResult.error || null,
       metadata: { previousStatus: event.previousStatus, currentStatus: event.currentStatus }
     });
 
-    logger.info(`Status change notification processed`, {
+    logger.info(`Status change email notification processed`, {
       orderId: event.orderId,
       channel: 'email',
-      from: event.previousStatus,
-      to: event.currentStatus,
-      status: result.success ? 'sent' : 'failed',
-      previewUrl: result.previewUrl
+      status: emailResult.success ? 'sent' : 'failed'
     });
+
+    // --- SMS Notification (only if phone number provided) ---
+    if (event.customerPhone) {
+      const smsTemplate = statusChangedSMS(event);
+
+      const smsResult = await sendSMS({
+        to: event.customerPhone,
+        message: smsTemplate.message
+      });
+
+      await NotificationLog.create({
+        orderId: event.orderId,
+        customerId: event.customerId || 'unknown',
+        channel: 'sms',
+        type: 'STATUS_CHANGED',
+        recipient: event.customerPhone,
+        subject: 'Status Update SMS',
+        status: smsResult.success ? 'sent' : 'failed',
+        messageId: smsResult.messageId,
+        error: smsResult.error || null,
+        metadata: { previousStatus: event.previousStatus, currentStatus: event.currentStatus }
+      });
+
+      logger.info(`Status change SMS notification processed`, {
+        orderId: event.orderId,
+        channel: 'sms',
+        status: smsResult.success ? 'sent' : 'failed'
+      });
+    }
   }
 }
 

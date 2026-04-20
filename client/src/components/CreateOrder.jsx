@@ -9,6 +9,7 @@ function CreateOrder({ showNotification }) {
   const [formData, setFormData] = useState({
     customerId: '',
     customerEmail: '',
+    customerPhone: '',
     items: [{ productId: '', name: '', quantity: 1, price: 0 }]
   });
 
@@ -72,6 +73,16 @@ function CreateOrder({ showNotification }) {
               onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
               required
               placeholder="customer@example.com"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Customer Phone</label>
+            <input
+              type="tel"
+              value={formData.customerPhone}
+              onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+              placeholder="+91 9876543210 (optional)"
             />
           </div>
 
