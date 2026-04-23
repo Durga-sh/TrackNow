@@ -10,8 +10,8 @@ class OrderController {
         return res.status(400).json({ error: error.details[0].message });
       }
 
-      const order = await orderService.createOrder(req.body);
-      logger.info(`Order created: ${order.orderId}`);
+      const order = await orderService.createOrder(req.body, req.correlationId);
+      logger.info(`Order created: ${order.orderId}`, { correlationId: req.correlationId });
       
       res.status(201).json({
         success: true,
@@ -25,7 +25,7 @@ class OrderController {
   async getOrderById(req, res, next) {
     try {
       const order = await orderService.getOrderById(req.params.id);
-      
+
       if (!order) {
         return res.status(404).json({ error: 'Order not found' });
       }

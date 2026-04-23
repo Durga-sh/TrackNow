@@ -13,7 +13,7 @@ const TOPICS = {
   ORDER_UPDATED: 'order.updated'
 };
 
-async function publishOrderCreated(order) {
+async function publishOrderCreated(order, correlationId) {
   try {
     await producer.send({
       topic: TOPICS.ORDER_CREATED,
@@ -22,11 +22,12 @@ async function publishOrderCreated(order) {
         value: JSON.stringify(order),
         headers: {
           eventType: 'OrderCreated',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          correlationId: Buffer.from(correlationId || '')
         }
       }]
     });
-    logger.info(`Published OrderCreated event for order: ${order.orderId}`);
+    logger.info(`Published OrderCreated event for order: ${order.orderId}`, { correlationId });
   } catch (error) {
     logger.error('Failed to publish OrderCreated event:', error);
     throw error;

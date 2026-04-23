@@ -14,7 +14,7 @@ const ORDER_STATUSES = {
 };
 
 class StatusService {
-  async updateStatus(orderId, newStatus, notes = '') {
+  async updateStatus(orderId, newStatus, notes = '', correlationId) {
     // 1. Get current order from MongoDB
     const orderDoc = await Order.findOne({ orderId });
     
@@ -62,7 +62,7 @@ class StatusService {
       currentStatus: newStatus,
       notes,
       timestamp: order.updatedAt
-    });
+    }, correlationId);
 
     logger.info(`Status updated for order ${orderId}: ${previousStatus} -> ${newStatus}`);
     return order;

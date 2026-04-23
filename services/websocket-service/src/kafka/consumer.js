@@ -22,9 +22,14 @@ const TOPICS = {
 async function processMessage({ topic, partition, message }) {
   const event = JSON.parse(message.value.toString());
 
+  const correlationId = message.headers?.correlationId
+    ? message.headers.correlationId.toString()
+    : 'unknown';
+
   logger.info(`Received event from ${topic}:`, {
     orderId: event.orderId,
-    partition
+    partition,
+    correlationId
   });
 
   let wsMessage;

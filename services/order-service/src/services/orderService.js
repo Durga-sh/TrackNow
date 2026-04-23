@@ -5,7 +5,7 @@ const { logger } = require('../utils/logger');
 const Order = require('../models/Order');
 
 class OrderService {
-  async createOrder(orderData) {
+  async createOrder(orderData, correlationId) {
     const order = {
       orderId: uuidv4(),
       customerId: orderData.customerId,
@@ -33,7 +33,7 @@ class OrderService {
     await this.storeOrder(order);
 
     // 3. Publish to Kafka (event notification)
-    await publishOrderCreated(order);
+    await publishOrderCreated(order, correlationId);
 
     logger.info(`Order ${order.orderId} created in DB and cached in Redis`);
     return order;

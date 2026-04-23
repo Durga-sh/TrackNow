@@ -12,7 +12,7 @@ const TOPICS = {
   STATUS_CHANGED: 'order.status.changed'
 };
 
-async function publishStatusChanged(statusChange) {
+async function publishStatusChanged(statusChange, correlationId) {
   try {
     await producer.send({
       topic: TOPICS.STATUS_CHANGED,
@@ -21,11 +21,12 @@ async function publishStatusChanged(statusChange) {
         value: JSON.stringify(statusChange),
         headers: {
           eventType: 'StatusChanged',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          correlationId: Buffer.from(correlationId || '')
         }
       }]
     });
-    logger.info(`Published StatusChanged event for order: ${statusChange.orderId}`);
+    logger.info(`Published StatusChanged event for order: ${statusChange.orderId}`, { correlationId });
   } catch (error) {
     logger.error('Failed to publish StatusChanged event:', error);
     throw error;

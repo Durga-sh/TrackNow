@@ -13,13 +13,13 @@ class StatusController {
       const orderId = req.params.id;
       const { status, notes } = req.body;
 
-      const updatedOrder = await statusService.updateStatus(orderId, status, notes);
+      const updatedOrder = await statusService.updateStatus(orderId, status, notes, req.correlationId);
       
       if (!updatedOrder) {
         return res.status(404).json({ error: 'Order not found' });
       }
 
-      logger.info(`Order ${orderId} status updated to ${status}`);
+      logger.info(`Order ${orderId} status updated to ${status}`, { correlationId: req.correlationId });
       
       res.json({
         success: true,

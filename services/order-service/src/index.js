@@ -7,6 +7,7 @@ const { logger } = require('./utils/logger');
 const { kafkaProducer } = require('./kafka/producer');
 const { redisClient } = require('./redis/client');
 const { connectDB } = require('./database/connection');
+const { correlationId } = require('./middleware/correlationId');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,6 +15,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(correlationId);
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 
 // Health check
